@@ -30,14 +30,17 @@ class WirelessButton
                     $this->read_data($this->get_url_query_value('Device'));
                 
                     case 'save':
-                        if ($this->is_url_query('Status'))
+                        if ($this->is_url_query('Status') &&
+                            $this->is_url_query('Master'))
                         {
                             $Status = $this->get_url_query_value('Status');
-                            $this->create_data($this->get_url_query_value('Device'), $Status);
+                            $Master = $this->get_url_query_value('Master');
+                            $this->create_data($this->get_url_query_value('Device'), $Status, $Master);
                         }   
                         else {
                             $error = [
-                                'Sensor'=> 'required'
+                                'Status'=> 'required',
+                                'Master'=> 'required'
                             ];
                             echo $this->error_handler($error);
                         }
@@ -47,20 +50,49 @@ class WirelessButton
         }
     }
 
-    function create_data($Dev, $Status)
+    function create_data($Dev, $Status, $Master)
     {
-        $get_query = "SELECT Status FROM {$Dev}";
-        echo $this->execute_query($get_query, null, 1);
-        // echo $get;
+        @include 'config.php';
+        $fetchStatus = "";
+        $max = 15 * $Master;
+        $min = 1 + $max-15;
+        $get_query = "SELECT Status FROM {$Dev} WHERE Id BETWEEN $min AND $max";
+        $resultStatus = mysqli_query($conn, $get_query);
+        $rowStatus = mysqli_fetch_all($resultStatus);
+        foreach($resultStatus as $rowStatus){
+            $fetchStatus .= $rowStatus['Status'];
+        }
+        $DatabaseArrayStatus = str_split($fetchStatus);
+        print_r($DatabaseArrayStatus);
+        
+        echo nl2br("\r\r");
+        echo "Input :";
+        echo nl2br("\r");
+        $InputArrayStatus = str_split($Status);
+        print_r($InputArrayStatus);
 
         echo nl2br("\r\r");
-        $arrayStatus['data'] = $Status;
-        $arrayStatus = json_encode($arrayStatus);
-        echo $arrayStatus;
-
-        // $sql_query = "INSERT INTO {$Dev} (Sensor, Stat, Volume, Temperature_Panel, Humidity, Temperature_Motor, Pressure1, Pressure2, Pressure3, Temperature_Oil) 
-        // VALUES ('".$Sen."','".$Stat."','".$Vol."','".$Temp."','".$Hum."','".$Tempmtr."','".$Prs1."','".$Prs2."','".$Prs3."','".$Tempoil."')";
-        // echo $this->execute_query($sql_query);
+        $CompareStatus = "";
+        $Change = 0;
+        for($Id = 0; $Id < strlen($Status)-1; $Id++){
+            if($InputArrayStatus[$Id] == 1 && $Change == 0){
+                $InputArrayStatus[$Id] = 0;
+                echo $InputArrayStatus[$Id];
+                echo "Change";
+                $Change = 1;
+                }else if($InputArrayStatus[$Id] == 0 && $Change == 0){
+                    $InputArrayStatus[$Id] = 1;
+                    $Change = 1;
+                }
+            if($DatabaseArrayStatus[$Id] != $InputArrayStatus[$Id]){
+                // echo "Change";
+                $update_query = "UPDATE {$Dev} SET status = {$InputArrayStatus[$Id]} WHERE Id = {$Id} + $min";
+                echo $this->execute_query($update_query);
+                echo $InputArrayStatus[$Id];
+                echo nl2br("\r");
+            }
+            $Change = 0;
+        }
     }
 
     private function execute_query($sql, $data = [], $is_read = null)
@@ -75,20 +107,18 @@ class WirelessButton
 
             if (!is_null($is_read) && $is_read)
             {
-                // $data['data'] = [];
-                // if($executed->num_rows != 0)
-                // {
-                //     while($row = $executed->fetch_all())
-                //     {
-                //         $data['data'] = $row;
-                //     }
-                // }
+                $data['data'] = [];
+                if($executed->num_rows != 0)
+                {
+                    while($row = $executed->fetch_all())
+                    {
+                        $data['data'] = $row;
+                    }
+                }
             }
-            // $data['payload'] = $row;
             
-            }else
-            $row = $executed->fetch_all();
-            $data = $row;
+            }
+
             return json_encode($data);
 
         }

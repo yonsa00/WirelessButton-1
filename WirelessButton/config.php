@@ -1,9 +1,10 @@
 <?php
+$conn = mysqli_connect('localhost','root','','igp_jakarta');
 return array(
     'hostname' => 'localhost',
     'username' => 'root',
-    'password' => 'password',
-    'database' => 'andon_plant2'
+    'password' => '',
+    'database' => 'igp_jakarta'
    );
 
 ?>
