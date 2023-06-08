@@ -61,7 +61,6 @@ void setup() {
   pinMode(ioAddress.outc, OUTPUT);
 
   _connectToWIFI();
-  // _databaseRead();
   _checkLED();
   delay(1000);
 }
