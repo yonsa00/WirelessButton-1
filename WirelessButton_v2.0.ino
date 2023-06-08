@@ -1,6 +1,7 @@
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <String.h>
 
 
 struct EEPROMAddress {
@@ -13,13 +14,13 @@ struct EEPROMAddress {
   int machineNameAddress = 135;
 };
 struct IOAddress {
-  byte ina = 12;
+  byte ina = 14;
   byte inb = 13;
-  byte inc = 14;
+  byte inc = 12;
 
-  byte outa = 2;
+  byte outa = 5;
   byte outb = 4;
-  byte outc = 5;
+  byte outc = 2;
 };
 int curStateA, curStateB, curStateC, oldStateA, oldStateB, oldStateC;
 
@@ -48,7 +49,8 @@ void setup() {
   Serial.print("Machine Name :");
   Serial.println(machineName);
   Serial.println("----------------------------------");
-
+  machineName.replace(" ","%20");
+  Serial.println(machineName);
   //initialize IO
   IOAddress ioAddress;
   pinMode(ioAddress.ina, INPUT);
@@ -59,6 +61,7 @@ void setup() {
   pinMode(ioAddress.outc, OUTPUT);
 
   _connectToWIFI();
+  // _databaseRead();
   _checkLED();
   delay(1000);
 }
@@ -66,12 +69,13 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   IOAddress ioAddress;
+
   if (digitalRead(ioAddress.ina) == LOW) {
-    digitalWrite(ioAddress.outa, LOW);
+    digitalWrite(ioAddress.outa, HIGH);
     Serial.print("Lamp A Active \t");
     curStateA = 1;
   } else {
-    digitalWrite(ioAddress.outa, HIGH);
+    digitalWrite(ioAddress.outa, LOW);
     Serial.print("Lamp A InActive \t");
     curStateA = 0;
   }
@@ -87,17 +91,18 @@ void loop() {
   }
 
   if (digitalRead(ioAddress.inc) == LOW) {
-    digitalWrite(ioAddress.outc, HIGH);
+    digitalWrite(ioAddress.outc, LOW);
     Serial.println("Lamp C Active");
     curStateC = 1;
   } else {
-    digitalWrite(ioAddress.outc, LOW);
+    digitalWrite(ioAddress.outc, HIGH);
     Serial.println("Lamp C InActive");
     curStateC = 0;
   }
 
-  if (curStateA != oldStateA || curStateB != oldStateB || curStateC != oldStateC) {
-    _databaseSend();
-  }
 
+  // if (curStateA != oldStateA || curStateB != oldStateB || curStateC != oldStateC) {
+  //   _databaseSend();
+  // }
+  _databaseSend();
 }
