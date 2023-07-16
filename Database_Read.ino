@@ -7,8 +7,7 @@ String _generateUrlRead() {
   apiUrl += ".php?";
   apiUrl += "mode=read";
   apiUrl += "&Line=" + line;
-  apiUrl += "&Machine=S-1%20(NEW)" ;
-  Serial.println(apiUrl);
+  apiUrl += "&Machine=M-1%20(D-14)";
   return apiUrl;
 }
 
@@ -22,18 +21,36 @@ void _databaseRead() {
   int httpCode = http.GET();
 
   if (httpCode > 0) {
-    // HTTP header has been send and Server response header has been handled
-    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
     if (httpCode == HTTP_CODE_OK) {
       const String& payload = http.getString();
       Serial.println("received payload:\n<<");
       Serial.println(payload);
-      Serial.println(">>");
+      // Serial.println(">>");
+      DeserializationError error = deserializeJson(jsonBuffer, payload);
+      if (error) {
+        Serial.print("Failed to parse JSON payload! Error code: ");
+        Serial.println(error.c_str());
+        return;
+      }
+      JsonArray data = jsonBuffer["data"];
+      for (JsonVariant department : data) {
+        // Extract department name and status
+        const char* deptName = department["Departement"];
+        int deptStatus = department["status"];
 
-      oldStateA = curStateA;
-      oldStateB = curStateB;
-      oldStateC = curStateC;
+        if (strcmp(deptName, "Maintenance") == 0) {
+          curStateA = deptStatus;
+        }
+        if (strcmp(deptName, "QC") == 0) {
+          curStateB = deptStatus;
+        }
+        if (strcmp(deptName, "Supply") == 0) {
+          curStateC = deptStatus;
+        }
+      }
     }
+  } else {
+    ESP.restart();
   }
   http.end();
 }
